@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#1f2937">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="manifest" href="./manifest.json">
+    <link rel="apple-touch-icon" href="./icon-192.png">
+    <title>QuickPOS Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwind.config = { darkMode: 'class' }</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.1/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen pb-20 font-sans">
+
+    <!-- ================= VIEW 1: DASHBOARD ================= -->
+    <div id="view-dashboard" class="max-w-5xl mx-auto p-4 sm:p-6 block">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl sm:text-3xl font-bold text-white">Customers</h1>
+            <button onclick="openModal('addCustomerModal')" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-bold shadow-lg active:scale-95 transition-transform">
+                + New Customer
+            </button>
+        </div>
+        <div class="flex gap-3 mb-6 bg-gray-800 p-3 rounded-lg border border-gray-700">
+            <button onclick="exportDatabase()" class="flex-1 bg-green-700 hover:bg-green-600 text-white px-3 py-2 rounded-lg text-sm font-bold shadow active:scale-95 transition-transform">
+                ↓ Download Backup
+            </button>
+            <label class="flex-1 bg-yellow-700 hover:bg-yellow-600 text-white px-3 py-2 rounded-lg text-sm font-bold shadow active:scale-95 transition-transform text-center cursor-pointer">
+                ↑ Restore Data
+                <input type="file" id="importFile" class="hidden" accept=".json" onchange="importDatabase(event)">
+            </label>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-3 mb-6">
+            <input type="text" id="searchCustomer" placeholder="Search by name..." class="flex-1 bg-gray-800 text-white border border-gray-700 rounded-lg p-3 focus:outline-none focus:border-blue-500" oninput="renderDashboard()">
+            <select id="sortCustomer" class="bg-gray-800 text-white border border-gray-700 rounded-lg p-3 focus:outline-none" onchange="renderDashboard()">
+                <option value="entries">Sort: Most Entries (Priority)</option>
+                <option value="recent">Sort: Last Entry (Newest)</option>
+                <option value="name">Sort: Name (A-Z)</option>
+                <option value="balanceDesc">Sort: Balance (High-Low)</option>
+            </select>
+        </div>
+        <div class="bg-gray-800 rounded-xl shadow-lg border border-gray-700 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-gray-900 border-b border-gray-700 text-gray-400 text-sm">
+                            <th class="p-4 font-semibold">Name & Entries</th>
+                            <th class="p-4 font-semibold">Balance Due</th>
+                            <th class="p-4 font-semibold hidden sm:table-cell">Last Entry</th>
+                            <th class="p-4 font-semibold text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="customerTableBody" class="divide-y divide-gray-700"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ================= VIEW 2: CUSTOMER DETAILS ================= -->
+    <div id="view-details" class="max-w-6xl mx-auto p-4 sm:p-6 hidden">
+        <button onclick="switchView('dashboard')" class="text-gray-400 hover:text-white mb-4 flex items-center gap-2">
+            &larr; Back to Dashboard
+        </button>
+        
+        <div class="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700 mb-6 flex justify-between items-center">
+            <div>
+                <h2 id="detailCustomerName" class="text-2xl sm:text-3xl font-bold text-white mb-1">Name</h2>
+                <p class="text-gray-400">Total Balance Due: <span id="detailCustomerBalance" class="text-xl font-bold text-red-400">₹0</span></p>
+            </div>
+            <button onclick="switchView('pos')" class="bg-green-600 hover:bg-green-500 text-white px-5 py-3 rounded-lg font-bold shadow-lg active:scale-95 transition-transform">
+                + New Ledger Entry
+            </button>
+        </div>
+
+        <input type="text" id="searchTx" placeholder="Search purchases..." class="w-full bg-gray-800 text-white border border-gray-700 rounded-lg p-3 mb-4 focus:outline-none focus:border-blue-500" oninput="renderCustomerDetails()">
+        <div id="transactionAccordion" class="space-y-4">
+            <!-- Populated via JS -->
+        </div>
+    </div>
+
+
+    <!-- ================= VIEW 3: NEW ENTRY (POS) ================= -->
+    <div id="view-pos" class="max-w-6xl mx-auto p-4 sm:p-6 hidden">
+        <button onclick="switchView('details')" class="text-gray-400 hover:text-white mb-4 flex items-center gap-2">
+            &larr; Cancel Entry
+        </button>
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+            
+            <!-- Left: Dynamic Catalog -->
+            <div class="md:col-span-7 bg-gray-800 p-4 sm:p-6 rounded-xl shadow-lg flex flex-col h-[75vh]">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold text-white">Item Catalog</h2>
+                    <button onclick="openModal('addProductModal')" class="text-sm bg-gray-700 hover:bg-gray-600 border border-gray-600 text-white px-3 py-1.5 rounded-lg active:scale-95">
+                        + Add Product
+                    </button>
+                </div>
+                <input type="text" id="searchInput" placeholder="Search items..." class="w-full bg-gray-700 text-white border border-gray-600 rounded-lg p-3 mb-4 focus:outline-none focus:border-blue-500" oninput="filterItems()">
+                
+                <div id="itemGrid" class="flex-1 grid grid-cols-2 sm:grid-cols-3 gap-3 overflow-y-auto pr-2 pb-4 no-scrollbar content-start">
+                    <!-- Injected via JS -->
+                </div>
+            </div>
+
+            <!-- Right: Ledger Entry Form -->
+            <div class="md:col-span-5 bg-gray-800 p-4 sm:p-6 rounded-xl shadow-lg h-fit">
+                <h2 class="text-xl font-bold mb-6 text-white">New Entry (<span id="posCustomerName" class="text-blue-400"></span>)</h2>
+                
+                <div class="space-y-5">
+                    <div>
+                        <label class="block text-sm text-gray-400 mb-2">Entry Date</label>
+                        <input type="date" id="posDate" class="w-full bg-gray-900 text-white border border-gray-700 rounded-lg p-3 focus:outline-none focus:border-blue-500">
+                    </div>
+
+                    <div>
+                        <label class="block text-sm text-gray-400 mb-2">Selected Items</label>
+                        <textarea id="posItemsSummary" rows="3" placeholder="Tap items on the left or type here..." class="w-full bg-gray-900 text-white border border-gray-700 rounded-lg p-3 focus:outline-none focus:border-blue-500 resize-none"></textarea>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm text-red-400 mb-2 font-semibold">Total Purchase (₹)</label>
+                            <input type="number" id="posPurchaseAmount" placeholder="0" class="w-full bg-gray-900 text-white border border-gray-700 rounded-lg p-3 focus:outline-none focus:border-red-500 text-lg font-bold">
+                        </div>
+                        <div>
+                            <label class="block text-sm text-green-400 mb-2 font-semibold">Cash Given (₹)</label>
+                            <input type="number" id="posCashGiven" placeholder="0" class="w-full bg-gray-900 text-white border border-gray-700 rounded-lg p-3 focus:outline-none focus:border-green-500 text-lg font-bold">
+                        </div>
+                    </div>
+                </div>
+
+                <button onclick="saveTransaction()" class="w-full mt-8 bg-blue-600 hover:bg-blue-500 text-white font-bold py-4 rounded-lg shadow-lg active:scale-95 transition-transform">
+                    Confirm & Save Entry
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= CUSTOM MODALS ================= -->
+
+    <!-- Add Customer Modal -->
+    <div id="addCustomerModal" class="fixed inset-0 bg-black/80 hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-gray-800 p-6 rounded-xl shadow-2xl border border-gray-700 w-full max-w-sm">
+            <h3 class="text-xl font-bold text-white mb-4">Add New Customer</h3>
+            <input type="text" id="newCustomerName" placeholder="Customer Full Name" class="w-full bg-gray-700 text-white border border-gray-600 rounded-lg p-3 mb-6 focus:outline-none focus:border-blue-500">
+            <div class="flex justify-end gap-3">
+                <button onclick="closeModal('addCustomerModal')" class="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-lg font-bold">Cancel</button>
+                <button onclick="saveNewCustomer()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-bold">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Product Modal -->
+    <div id="addProductModal" class="fixed inset-0 bg-black/80 hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-gray-800 p-6 rounded-xl shadow-2xl border border-gray-700 w-full max-w-sm">
+            <h3 class="text-xl font-bold text-white mb-4">Add New Product</h3>
+            <input type="text" id="newProductName" placeholder="Product Name" class="w-full bg-gray-700 text-white border border-gray-600 rounded-lg p-3 mb-6 focus:outline-none focus:border-blue-500">
+            <div class="flex justify-end gap-3">
+                <button onclick="closeModal('addProductModal')" class="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-lg font-bold">Cancel</button>
+                <button onclick="saveNewProduct()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-bold">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quantity Modal -->
+    <div id="quantityModal" class="fixed inset-0 bg-black/80 hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-gray-800 p-6 rounded-xl shadow-2xl border border-gray-700 w-full max-w-sm">
+            <h3 class="text-xl font-bold text-white mb-2">Enter Quantity</h3>
+            <p id="quantityItemDisplay" class="text-gray-400 mb-4 text-sm"></p>
+            <input type="hidden" id="quantityItemName">
+            <!-- Step="0.5" allows half values -->
+            <input type="number" id="itemQuantity" value="1" step="0.5" min="0.5" class="w-full bg-gray-700 text-white border border-gray-600 rounded-lg p-3 mb-6 focus:outline-none focus:border-blue-500 text-lg font-bold text-center">
+            <div class="flex justify-end gap-3">
+                <button onclick="closeModal('quantityModal')" class="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-lg font-bold">Cancel</button>
+                <button onclick="confirmQuantity()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-bold">Add Item</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Transaction Modal -->
+    <div id="editModal" class="fixed inset-0 bg-black/80 hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-gray-800 p-6 rounded-xl shadow-2xl border border-gray-700 w-full max-w-md">
+            <h3 class="text-xl font-bold text-white mb-4">Edit Entry</h3>
+            <input type="hidden" id="editTxId">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm text-gray-400 mb-1">Date</label>
+                    <input type="date" id="editDate" class="w-full bg-gray-700 text-white border border-gray-600 rounded-lg p-2 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-400 mb-1">Items Summary</label>
+                    <input type="text" id="editItemsText" class="w-full bg-gray-700 text-white border border-gray-600 rounded-lg p-2 focus:outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-sm text-red-400 mb-1">Purchase (₹)</label>
+                        <input type="number" id="editPurchase" class="w-full bg-gray-700 text-white border border-gray-600 rounded-lg p-2 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm text-green-400 mb-1">Cash (₹)</label>
+                        <input type="number" id="editCash" class="w-full bg-gray-700 text-white border border-gray-600 rounded-lg p-2 focus:outline-none">
+                    </div>
+                </div>
+            </div>
+            <div class="flex justify-between mt-6">
+                <button onclick="deleteCurrentTransaction()" class="text-red-400 hover:text-red-300 font-semibold px-2">Delete</button>
+                <div class="flex gap-3">
+                    <button onclick="closeModal('editModal')" class="bg-gray-600 hover:bg-gray-500 text-white px-4 py-2 rounded-lg font-bold">Cancel</button>
+                    <button onclick="saveEditModal()" class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-bold">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="./script.js"></script>
+</body>
+</html>

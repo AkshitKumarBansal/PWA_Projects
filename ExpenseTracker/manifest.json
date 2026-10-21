@@ -1,0 +1,16 @@
+{
+  "name": "Monthly Finance Tracker",
+  "short_name": "Finance",
+  "description": "An offline-capable app to track daily incomes and expenses.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4f46e5",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3135/3135679.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png"
+    }
+  ]
+}

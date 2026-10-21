@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="style.css">
+  <title>ShoppingList</title>
+</head>
+<body>
+  <h1>Shopping List</h1>
+  <form id="item-form">
+    <input type="text" id="item-input" placeholder="Add an item" required>
+    <input type="number" id="item-quantity" placeholder="Add the quantity" required>
+    <input type="number" id="item-price" placeholder="Add the price" required>
+    <button type="submit">Add</button>
+  </form>
+  <div id="item-list"></div>
+  <div id="total-cost">Total Cost: 0.00</div>
+  <script src="script.js"></script>
+</body>
+</html>
