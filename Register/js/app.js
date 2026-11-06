@@ -1,12 +1,5 @@
-import {
-    getAllCylinders,
-    migrateLocalStorage
-} from './db.js';
-
-import {
-    registerInitialStock,
-    processCylinderAction
-} from './modules/cylinderService.js';
+import { getAllCylinders, migrateLocalStorage, transactCylinders, isValidCylinder } from './db.js';
+import { registerInitialStock, processCylinderAction, getTodayDate } from './modules/cylinderService.js';
 
 import {
     exportJSONBackup,
@@ -16,6 +9,8 @@ import {
 } from './modules/backup.js';
 
 const ROWS_PER_PAGE = 50;
+
+console.log("Hello");
 
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, (char) => {
@@ -138,6 +133,10 @@ export function updateFormForCylinder(cylinders, cylinderNumber) {
     returnDiv.classList.add('hidden');
     halfReturnDiv?.classList.add('hidden');
     initialStockDiv?.classList.add('hidden');
+
+    if (gasSelect) {
+        gasSelect.disabled = false;
+    }
 
     if (customerInput) {
         customerInput.required = false;
@@ -562,41 +561,41 @@ async function refreshCylinders(resetPage = false) {
   updateFormForCylinder(cylinders, el("cylNum")?.value || "");
 }
 
-async function registerInitialCylinder(cylNum, gasType) {
-  const number = cylNum.trim().toUpperCase();
-  const today = getTodayDate();
+// async function registerInitialCylinder(cylNum, gasType) {
+//   const number = cylNum.trim().toUpperCase();
+//   const today = getTodayDate();
 
-  const result = await transactCylinders((records) => {
-    if (records.some((r) => r.cylNum.trim().toUpperCase() === number)) {
-      throw new Error("This cylinder number is already registered.");
-    }
+//   const result = await transactCylinders((records) => {
+//     if (records.some((r) => r.cylNum.trim().toUpperCase() === number)) {
+//       throw new Error("This cylinder number is already registered.");
+//     }
 
-    const record = {
-      cylNum: number,
-      gasType,
-      fillLevel: "Full",
-      refillDate: today,
-      customer: "",
-      dateSent: "",
-      dateReturned: "",
-      nextRefillDate: "",
-      supplierSentDate: "",
-      supplierReturnedDate: "",
-      status: "In Shop",
-    };
+//     const record = {
+//       cylNum: number,
+//       gasType,
+//       fillLevel: "Full",
+//       refillDate: today,
+//       customer: "",
+//       dateSent: "",
+//       dateReturned: "",
+//       nextRefillDate: "",
+//       supplierSentDate: "",
+//       supplierReturnedDate: "",
+//       status: "In Shop",
+//     };
 
-    if (!isValidCylinder(record))
-      throw new Error("Initial cylinder data is invalid.");
+//     if (!isValidCylinder(record))
+//       throw new Error("Initial cylinder data is invalid.");
 
-    return {
-      updates: [],
-      inserts: [record],
-      value: "Initial cylinder stock registered successfully.",
-    };
-  });
+//     return {
+//       updates: [],
+//       inserts: [record],
+//       value: "Initial cylinder stock registered successfully.",
+//     };
+//   });
 
-  return result.value;
-}
+//   return result.value;
+// }
 
 async function handleCylinderSubmit(event) {
   event.preventDefault();
@@ -616,7 +615,13 @@ async function handleCylinderSubmit(event) {
     let message;
 
     if (!latest) {
-      message = await registerInitialCylinder(cylNum, gasType);
+      const result = await registerInitialStock({
+        cylNum,
+        gasType,
+        fillLevel: el("initialFillLevel")?.value || "",
+        refillDate: el("initialRefillDate")?.value || "",
+      });
+      message = result.value;
     } else {
       const action =
         latest.status === "In Shop"

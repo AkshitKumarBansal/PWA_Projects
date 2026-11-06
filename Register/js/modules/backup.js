@@ -244,7 +244,8 @@ function csvEscape(value) {
     let text = String(value ?? '');
 
     // Prevent formulas from being interpreted by spreadsheets.
-    if (/^[\s]*[=+\-@]/.test(text)) {
+    // A lone "-" is the empty-cell placeholder, not a formula.
+    if (text !== '-' && /^[\s]*[=+\-@]/.test(text)) {
         text = `'${text}`;
     }
 

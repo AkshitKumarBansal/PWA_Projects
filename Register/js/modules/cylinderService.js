@@ -164,11 +164,17 @@ export async function registerInitialStock({
     return result;
 }
 
+// Normalizes a cylinder number the same way the UI does.
+function normalizeCylNum(value) {
+    return String(value ?? '').trim().toUpperCase();
+}
+
 // Finds the latest record for a given cylinder number from a list of records.
 function findLatestCylinderRecord(records, cylNum) {
+    const target = normalizeCylNum(cylNum);
     return records
-        .filter(record => record.cylNum === cylNum)
-        .sort((a, b) => b.id - a.id)[0] || null;
+        .filter(record => normalizeCylNum(record.cylNum) === target)
+        .sort((a, b) => (b.id || 0) - (a.id || 0))[0] || null;
 }
 
 // Processes a cylinder action (dispatch, return, supplier operations) with validation and atomic database transaction.
@@ -321,9 +327,13 @@ export async function processCylinderAction({
 
         if (action === 'supplier-dispatch') {
 
-            if (latest.status !== 'Returned to Shop') {
+            const awaitingProcessing = latest.status === 'Returned to Shop';
+            const inShopNeedsRefill =
+                latest.status === 'In Shop' && latest.fillLevel !== 'Full';
+
+            if (!awaitingProcessing && !inShopNeedsRefill) {
                 throw new Error(
-                    'Only cylinders returned to the shop can be sent to the supplier.'
+                    'Only cylinders returned to the shop, or in the shop but not full, can be sent to the supplier.'
                 );
             }
 
@@ -370,8 +380,25 @@ export async function processCylinderAction({
                 refillDate: today
             };
 
+            // Stamp the previous Completed record with the date of its next refill.
+            const previousCompleted = existingRecords.find(
+                record =>
+                    record.status === 'Completed' &&
+                    !record.nextRefillDate &&
+                    (record.id || 0) < (latest.id || 0)
+            );
+
+            const updates = [updatedRecord];
+
+            if (previousCompleted) {
+                updates.push({
+                    ...previousCompleted,
+                    nextRefillDate: today
+                });
+            }
+
             return {
-                updates: [updatedRecord],
+                updates,
                 inserts: [],
                 value: 'Supplier returned the cylinder. Refill successfully recorded.'
             };
