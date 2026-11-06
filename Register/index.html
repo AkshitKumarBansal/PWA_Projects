@@ -1,18 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cylinder Register</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#3b82f6">
+    <title>Cylinder Register</title>
+    <link rel="stylesheet" href="./assets/css/style.css">
+    <link rel="manifest" href="./manifest.json">
 </head>
+
 <body class="bg-gray-100 p-4 font-sans max-w-5xl mx-auto">
-    
     <h1 class="text-2xl font-bold mb-4 text-center">Cylinder Register</h1>
 
-    <!-- Search Bar -->
     <div class="flex flex-col md:flex-row gap-2 mb-4">
         <select id="searchColumn" class="p-2 border rounded shadow-sm bg-white md:w-1/4 cursor-pointer">
             <option value="all">Search All</option>
@@ -24,22 +24,19 @@
         <input type="text" id="searchInput" placeholder="Type to search..." class="w-full p-2 border rounded shadow-sm">
     </div>
 
-    <!-- Input Form -->
     <form id="cylinderForm" class="bg-white p-4 rounded shadow mb-6">
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <input type="text" id="cylNum" placeholder="Cylinder Number (e.g., CYL-001)" class="p-2 border rounded" required>
-            
+            <input type="text" id="cylNum" placeholder="Cylinder Number (e.g., CYL-001)" class="p-2 border rounded"
+                required>
             <select id="gasType" class="p-2 border rounded">
                 <option value="O2">O2 (Oxygen)</option>
                 <option value="CO2">CO2 (Carbon Dioxide)</option>
                 <option value="Ar">Ar (Argon)</option>
                 <option value="N">N (Nitrogen)</option>
             </select>
-            
             <div id="customerInputDiv" class="hidden md:col-span-2">
                 <input type="text" id="customerName" placeholder="Customer Name" class="w-full p-2 border rounded">
             </div>
-
             <div id="returnStatusDiv" class="hidden md:col-span-2">
                 <label class="block text-sm font-bold text-gray-700 mb-1">Fill Level on Return:</label>
                 <select id="returnFillLevel" class="w-full p-2 border rounded">
@@ -48,12 +45,80 @@
                     <option value="Full">Full</option>
                 </select>
             </div>
+
+            <!-- Initial Stock Registration -->
+            <div id="initialStockDiv" class="hidden md:col-span-2 border rounded-lg p-4 bg-blue-50">
+
+                <h3 class="font-bold text-blue-800 mb-3">
+                    Initial Cylinder Stock Registration
+                </h3>
+
+                <label for="initialFillLevel" class="block font-medium mb-1">
+                    Initial Fill Level
+                </label>
+
+                <select id="initialFillLevel" class="w-full border rounded p-2 mb-3">
+                    <option value="">Select Fill Level</option>
+                    <option value="Empty">Empty</option>
+                    <option value="Half">Half</option>
+                    <option value="Full">Full</option>
+                </select>
+
+                <label for="initialRefillDate" class="block font-medium mb-1">
+                    Last Refill Date
+                </label>
+
+                <input type="date" id="initialRefillDate" class="w-full border rounded p-2" />
+
+                <p class="text-sm text-gray-600 mt-2">
+                    Enter the cylinder's current fill level and
+                    its last refill date.
+                </p>
+            </div>
+
+            <!-- Half-filled cylinder handling -->
+            <div id="halfReturnActionDiv" class="hidden mt-3">
+                <label for="halfReturnAction" class="block font-medium mb-1">
+                    What should happen to the half-filled cylinder?
+                </label>
+
+                <select id="halfReturnAction" class="w-full border rounded p-2">
+                    <option value="">Select an action</option>
+                    <option value="available">Make Available for Another Customer</option>
+                    <option value="send-for-refill">Send for Refilling</option>
+                </select>
+            </div>
         </div>
-        <button type="submit" id="submitBtn" class="mt-4 w-full bg-blue-600 text-white p-2 rounded font-bold shadow hover:bg-blue-700 transition">Log New Refill (In Shop)</button>
+        <button type="submit" id="submitBtn"
+            class="mt-4 w-full bg-blue-600 text-white p-2 rounded font-bold shadow hover:bg-blue-700 transition">Log New
+            Refill (In Shop)</button>
     </form>
 
-    <!-- Data Table -->
-    <div class="bg-white rounded shadow overflow-x-auto">
+    <!-- Supplier Refill Operations -->
+    <div class="mt-6 border rounded-lg p-4">
+        <h2 class="text-lg font-bold mb-3">
+            Supplier Refill Operations
+        </h2>
+
+        <label for="supplierCylinderNumber" class="block mb-1">
+            Cylinder Number
+        </label>
+
+        <input type="text" id="supplierCylinderNumber" placeholder="Enter cylinder number"
+            class="w-full border rounded p-2 mb-3" />
+
+        <div class="flex flex-col sm:flex-row gap-3">
+            <button type="button" id="sendToSupplierBtn" class="bg-orange-500 text-white rounded p-2">
+                Send to Supplier
+            </button>
+
+            <button type="button" id="supplierReturnBtn" class="bg-green-600 text-white rounded p-2">
+                Confirm Supplier Return
+            </button>
+        </div>
+    </div>
+
+    <div class="bg-white rounded shadow overflow-x-auto mb-6">
         <table class="w-full text-left border-collapse min-w-max">
             <thead>
                 <tr class="bg-gray-200">
@@ -68,67 +133,43 @@
                     <th class="p-2 border-b">Status</th>
                 </tr>
             </thead>
-            <tbody id="tableBody">
-                <!-- Rows will be generated by app.js -->
-            </tbody>
+            <tbody id="tableBody"></tbody>
         </table>
     </div>
 
-    <!-- Backup and Restore Controls -->
     <div class="bg-white p-4 rounded shadow mb-6 flex flex-col md:flex-row gap-4 items-center justify-between">
-        <div class="text-sm text-gray-600">
-            <strong>Data Export:</strong> Save backups or export to Excel.
-        </div>
+        <div class="text-sm text-gray-600"><strong>Data Export:</strong> Save backups or export to Excel.</div>
         <div class="flex flex-wrap gap-2 w-full md:w-auto">
-            <button id="exportCsvBtn" class="flex-1 bg-teal-600 text-white p-2 rounded font-bold shadow hover:bg-teal-700 transition">📊 Excel / CSV</button>
-            <button id="exportBtn" class="flex-1 bg-gray-800 text-white p-2 rounded font-bold shadow hover:bg-gray-900 transition">💾 Backup Data</button>
-            
-            <input type="file" id="importFile" class="hidden" accept=".json">
-            <button id="importBtn" class="flex-1 bg-green-600 text-white p-2 rounded font-bold shadow hover:bg-green-700 transition">📂 Restore Data</button>
+            <button type="button" id="exportCsvBtn"
+                class="flex-1 bg-teal-600 text-white p-2 rounded font-bold shadow hover:bg-teal-700 transition">📊 Excel
+                / CSV</button>
+            <button type="button" id="exportBtn"
+                class="flex-1 bg-gray-800 text-white p-2 rounded font-bold shadow hover:bg-gray-900 transition">💾
+                Backup Data</button>
+            <input type="file" id="importFile" class="hidden" accept=".json,application/json">
+            <button type="button" id="importBtn"
+                class="flex-1 bg-green-600 text-white p-2 rounded font-bold shadow hover:bg-green-700 transition">📂
+                Restore Data</button>
         </div>
     </div>
 
-    <!-- Data Table -->
-    <div class="bg-white rounded shadow overflow-x-auto">
-        <table class="w-full text-left border-collapse min-w-max">
-            <thead>
-                <tr class="bg-gray-200">
-                    <th class="p-2 border-b">Cyl #</th>
-                    <th class="p-2 border-b">Gas</th>
-                    <th class="p-2 border-b">Fill</th>
-                    <th class="p-2 border-b">Refilled</th>
-                    <th class="p-2 border-b">Customer</th>
-                    <th class="p-2 border-b">Sent</th>
-                    <th class="p-2 border-b">Returned</th>
-                    <th class="p-2 border-b">Next Refill</th>
-                    <th class="p-2 border-b">Status</th>
-                </tr>
-            </thead>
-            <tbody id="tableBody">
-                <!-- Rows will be generated by app.js -->
-            </tbody>
-        </table>
-    </div>
-
-    <!-- Pagination Controls -->
     <div class="flex justify-between items-center mt-4 mb-8 bg-white p-3 rounded shadow">
-        <button id="prevPageBtn" class="px-4 py-2 bg-gray-200 font-bold rounded hover:bg-gray-300 disabled:opacity-50 transition">Previous</button>
+        <button type="button" id="prevPageBtn"
+            class="px-4 py-2 bg-gray-200 font-bold rounded hover:bg-gray-300 disabled:opacity-50 transition">Previous</button>
         <span id="pageInfo" class="font-bold text-gray-700">Page 1 of 1</span>
-        <button id="nextPageBtn" class="px-4 py-2 bg-gray-200 font-bold rounded hover:bg-gray-300 disabled:opacity-50 transition">Next</button>
+        <button type="button" id="nextPageBtn"
+            class="px-4 py-2 bg-gray-200 font-bold rounded hover:bg-gray-300 disabled:opacity-50 transition">Next</button>
     </div>
 
-    <!-- Link to external JS -->
-    <script src="app.js" defer></script>
-    
-    <!-- PWA Service Worker Registration -->
+    <script type="module" src="./js/app.js"></script>
     <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('./sw.js')
-            .then(reg => console.log('ServiceWorker registered'))
-            .catch(err => console.log('ServiceWorker failed: ', err));
-        });
-      }
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .catch((error) => console.error('Service Worker registration failed:', error));
+            });
+        }
     </script>
 </body>
+
 </html>

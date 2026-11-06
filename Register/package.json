@@ -1,0 +1,38 @@
+{
+  "name": "register",
+  "version": "1.0.0",
+  "description": "Cylinder Register - Offline PWA",
+  "main": "js/app.js",
+  "scripts": {
+    "dev:css": "npx @tailwindcss/cli -i ./src/styles/input.css -o ./assets/css/style.css --watch",
+    "build:css": "npx @tailwindcss/cli -i ./src/styles/input.css -o ./assets/css/style.css --minify",
+    "start": "http-server . -p 8080",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:watch": "vitest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AkshitKumarBansal/Register_record.git"
+  },
+  "keywords": [
+    "cylinder-register",
+    "pwa",
+    "offline"
+  ],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/AkshitKumarBansal/Register_record/issues"
+  },
+  "homepage": "https://github.com/AkshitKumarBansal/Register_record#readme",
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.3.3",
+    "@vitest/coverage-v8": "^5.1.0",
+    "fake-indexeddb": "^6.2.7",
+    "http-server": "^14.1.1",
+    "tailwindcss": "^4.3.3",
+    "vitest": "^5.1.0"
+  }
+}
